@@ -44,17 +44,6 @@ impl<const N: usize> ShprotoPacket<N> {
         p.data.push(0xFE).unwrap();
         p
     }
-    fn crc16(&mut self, byte: u8) {
-        let mut crc = self.crc ^ (byte as u16);
-        for _ in 0..8 {
-            if (crc & 0x0001) != 0 {
-                crc = (crc >> 1) ^ 0xA001
-            } else {
-                crc = crc >> 1
-            }
-        }
-        self.crc = crc;
-    }
 
     pub fn start(&mut self, command: u8) -> Result<(), ShprotoError> {
         self.add_byte(command)
@@ -70,12 +59,12 @@ impl<const N: usize> ShprotoPacket<N> {
         };
         if need_escape {
             self.data.push(ControlByte::ESCAPE)
-                .map_err(|e| ShprotoError::PushFailed)?;
+                .map_err(|_| ShprotoError::PushFailed)?;
             self.data.push((!byte) & 0xFF)
-                .map_err(|e| ShprotoError::PushFailed)?;
+                .map_err(|_| ShprotoError::PushFailed)?;
         } else {
             self.data.push(byte)
-                .map_err(|e| ShprotoError::PushFailed)?;;
+                .map_err(|_| ShprotoError::PushFailed)?;
         }
         Ok(())
     }
@@ -97,9 +86,6 @@ enum ShprotoParserState {
     Start,
     Data,
     EscapedData,
-    CrcLow,
-    CrcHigh,
-    Stop,
 }
 
 pub struct ShprotoParser<const N: usize> {
@@ -133,7 +119,18 @@ impl<const N: usize> ShprotoParser<N> {
                         self.state = ShprotoParserState::EscapedData;
                     }
                     ControlByte::STOP => {
-                        self.state = ShprotoParserState::CrcLow;
+                        // Create a new packet to return.
+                        let completed_packet = ShprotoPacket {
+                            data: self.packet.data.clone(),
+                            crc: self.packet.crc,
+                            completed: true,
+                            valid: self.packet.crc == 0,
+                        };
+
+                        // Reset the parser state and return the completed packet.
+                        self.state = ShprotoParserState::Start;
+                        self.packet = ShprotoPacket::new();
+                        return Ok(Some(completed_packet));
                     }
                     _ => {
                         self.packet.add_byte(byte)?;
@@ -145,25 +142,6 @@ impl<const N: usize> ShprotoParser<N> {
                 self.packet.add_byte(unescaped_byte)?;
                 self.state = ShprotoParserState::Data;
             }
-            ShprotoParserState::CrcLow => {
-                self.packet.add_byte(byte)?;
-                self.state = ShprotoParserState::CrcHigh;
-            }
-            ShprotoParserState::CrcHigh => {
-                // Create a new packet to return.
-                let completed_packet = ShprotoPacket {
-                    data: self.packet.data.clone(),
-                    crc: self.packet.crc,
-                    completed: true,
-                    valid: self.packet.crc == 0,
-                };
-
-                // Reset the parser state and return the completed packet.
-                self.state = ShprotoParserState::Start;
-                self.packet = ShprotoPacket::new();
-                return Ok(Some(completed_packet));
-            }
-            ShprotoParserState::Stop => {}
         }
 
         Ok(None)
@@ -175,7 +153,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn crc16_works() {
+    fn build() {
         let mut packet = ShprotoPacket::<256>::new();
         packet.start(0x03).unwrap();
         packet.add_byte(0x99).unwrap();
@@ -187,13 +165,15 @@ mod tests {
     }
     #[test]
     fn parse() {
-        let bytes:[u8; 7] = [0xFF, 0xFE, 0x03, 0x00, 0x01, 0x40, 0xa5];
-        let mut parser = ShprotoParser::<256>::new();
+        let bytes = [0xFF, 0xFE, 0x69, 0x8C, 0x90, 0x8C, 0x89, 0xFD, 0x5A, 0x53, 0xFD, 0x02, 0xA5];
+        let mut parser = ShprotoParser::<4096>::new();
+        let mut packet_counter: u32 = 0;
         for byte in bytes.as_slice() {
             if let Some(packet) = parser.parse_byte(*byte).unwrap() {
                 assert_eq!(packet.crc, 0);
-                assert_eq!(packet.data, bytes);
+                packet_counter += 1;
             }
         }
+        assert_eq!(packet_counter, 1);
     }
 }
