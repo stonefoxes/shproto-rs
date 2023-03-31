@@ -28,7 +28,7 @@ impl ControlByte {
 
 #[derive(Debug)]
 pub struct ShprotoPacket<const N: usize = 256> {
-    data: heapless::Vec<u8, N>,
+    pub data: heapless::Vec<u8, N>,
     crc: u16,
     completed: bool,
     valid: bool,
