@@ -108,14 +108,14 @@ pub struct ShprotoParser<const N: usize> {
 }
 
 impl<const N: usize> ShprotoParser<N> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         ShprotoParser {
             state: ShprotoParserState::Start,
             packet: ShprotoPacket::new(),
         }
     }
 
-    fn parse_byte(&mut self, byte: u8) -> Result<Option<ShprotoPacket<N>>, ShprotoError> {
+    pub fn parse_byte(&mut self, byte: u8) -> Result<Option<ShprotoPacket<N>>, ShprotoError> {
         match self.state {
             ShprotoParserState::Start => {
                 if byte == ControlByte::START {
