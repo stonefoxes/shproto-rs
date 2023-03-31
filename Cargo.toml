@@ -1,6 +1,6 @@
 [package]
 name = "shproto-rs"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["Worm Zemlyanoi <me@ypr.pw>"]
 description = "This code is a Rust implementation of a Simple Hexadecimal Protocol (Shproto) packet format."

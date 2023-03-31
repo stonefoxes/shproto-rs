@@ -26,6 +26,7 @@ impl ControlByte {
     pub const STOP: u8 = 0xA5;
 }
 
+#[derive(Debug)]
 pub struct ShprotoPacket<const N: usize = 256> {
     data: heapless::Vec<u8, N>,
     crc: u16,
