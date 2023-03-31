@@ -2,10 +2,6 @@
 
 use heapless;
 
-// 0xFF 0xFE 0x03 0x00 0x01 0x40 0xa5 <- HEX
-// 255  254  3    0    1    64   165  <- u8
-// \377 \376 \003 \000 \001 @    \245 <- ASCII
-
 #[derive(Debug, Copy, Clone)]
 pub enum ShprotoError {
     PushFailed
@@ -84,12 +80,6 @@ impl<const N: usize> ShprotoPacket<N> {
         }
     }
 }
-
-// Packet
-// PacketBuilder
-// Encoder
-// Decoder
-// StreamDecoder
 
 enum ShprotoParserState {
     Start,
