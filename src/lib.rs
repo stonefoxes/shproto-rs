@@ -2,6 +2,18 @@
 
 use heapless;
 
+pub fn crc16(crc: u16, byte: u8) -> u16 {
+    let mut crc = crc ^ (byte as u16);
+    for _ in 0..8 {
+        if (crc & 0x0001) != 0 {
+            crc = (crc >> 1) ^ 0xA001
+        } else {
+            crc = crc >> 1
+        }
+    }
+    crc
+}
+
 #[derive(Debug, Copy, Clone)]
 pub enum ShprotoError {
     PushFailed
@@ -50,7 +62,7 @@ impl<const N: usize> ShprotoPacket<N> {
 
     pub fn add_byte(&mut self, byte: u8) -> Result<(), ShprotoError>{
         // calculate crc
-        self.crc16(byte);
+        self.crc = crc16(self.crc, byte);
         // push byte
         let need_escape: bool = match byte {
             ControlByte::START | ControlByte::ESCAPE | ControlByte::STOP => true,
