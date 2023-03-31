@@ -102,7 +102,7 @@ enum ShprotoParserState {
     Stop,
 }
 
-struct ShprotoParser<const N: usize> {
+pub struct ShprotoParser<const N: usize> {
     state: ShprotoParserState,
     packet: ShprotoPacket<N>,
 }
